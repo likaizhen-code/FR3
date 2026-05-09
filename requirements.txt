@@ -1,0 +1,5 @@
+numpy
+scipy
+matplotlib
+mujoco
+pinocchio #conda install -c conda-forge pinocchio

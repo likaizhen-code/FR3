@@ -1,0 +1,66 @@
+<mujoco model="fr3_on_table">
+    <compiler angle="radian" meshdir="mj_assets" autolimits="true" inertiafromgeom="auto" inertiagrouprange="4 4"/>
+    <statistic center="0.3 0 0.4" extent="1"/>
+    <option integrator="implicitfast"/>
+    <visual>
+        <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+        <rgba haze="0.15 0.25 0.35 1"/>
+        <global azimuth="120" elevation="-20"/>
+    </visual>
+    <asset>
+        <include file="./table_assets.xml"/>
+        <include file="./fr3_assets.xml"/>
+        <mesh name="cup" file="cup.obj" scale="4 4 1"/>
+    </asset>
+    <default>
+        <include file="./table_default.xml"/>
+        <include file="./fr3_default.xml"/>
+    </default>
+
+    <worldbody>
+        <light name="top" pos="0 0 2" mode="trackcom"/>
+        <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+        <body name="fixed_camera" pos="0 -0.4 0.8">
+            <camera name="franka_camera" mode="fixed" euler="-1.5708 0 3.1416" focalpixel="250 250" principalpixel="0 0" resolution="500 500" sensorsize="2e-2 2e-2"/>
+        </body>
+
+        <include file="./table_body.xml"/>
+        <include file="./fr3_on_table_body.xml"/>
+
+        <body name="object" pos="0.1 -0.2 0.85">
+                <!-- 自由运动（必须！） -->
+                 <joint name="object_free_joint" type="free"/>
+                 <!-- 质量和惯性（别太轻） -->
+                 <inertial mass="0.01" pos="0 0 0" fullinertia="0.001 0.001 0.001 0 0 0"/>
+                 <!-- 几何体（可抓取） -->
+                 <geom 
+                    type="box" 
+                    size="0.025 0.025 0.05"
+                    rgba="0.8 0.2 0.2 1"
+
+                    friction="1.5 0.5 0.3"
+                    condim="4"
+                    
+                    solref="0.01 1"
+                    solimp="0.8 0.9 0.01"
+                 />
+        </body>
+
+        <body name="box1" pos="-0.25 -0.2 0.85">
+            <geom type="box"
+                size="0.05 0.05 0.1"
+                rgba="0.8 0.2 0.2 1"
+                contype="1"
+                conaffinity="1"/>
+        </body>
+
+
+    </worldbody>
+
+    <include file="./fr3_motors.xml"/>
+
+    <sensor>
+        <force name="ee_force" site="right_finger_site"/>
+        <torque name="ee_torque" site="right_finger_site"/>
+    </sensor>
+</mujoco>
