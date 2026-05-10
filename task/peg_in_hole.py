@@ -27,11 +27,11 @@ lift = obj_pos + np.array([0, 0, 0.2])
 # =========================
 # 放置位置
 # =========================
-place_pos = np.array([0.47, -0.3, 0.1])
+place_pos = np.array([0.45, -0.3, 0.1])
 
 place_pre = place_pos + np.array([0, 0, 0.3])
 place_down = place_pos + np.array([0, 0, 0.15])
-place_lift = place_pos + np.array([0, 0.05, 0.2])
+place_lift = place_pos + np.array([0, 0, 0.2])
 # =========================
 # 移动
 # =========================
@@ -51,7 +51,6 @@ def move_to(target, steps=2000, gripper=10):
 
 # 1️⃣ 打开夹爪 + 到上方
 move_to(pre_grasp, steps=1000, gripper=10)
-#     f_contact = my_robot.get_sensor_force()
 
 # 2️⃣ 慢慢下降
 move_to(grasp, steps=1000, gripper=10)
@@ -76,18 +75,17 @@ move_to(place_pre, steps=1000, gripper=-40)
 move_to(place_down, steps=1000, gripper=-40)
 
 # 6️⃣ 导纳控制插入
-for _ in range(1000):
+for _ in range(8000):
     tau = adm_controller.step()
     my_robot.send_joint_torque(tau, -40)
     Clock.wait()
 
 
-# 7️⃣ 松开
-for _ in range(1000):
-    tau = adm_controller.step()
-    my_robot.send_joint_torque(tau, 10)  # 打开夹爪
 
-    Clock.wait()
 
-# 8️⃣ 抬起撤离
-move_to(place_lift, steps=3000, gripper=10)
+# 7️⃣ 松开抬起撤离
+tau = adm_controller.step()
+my_robot.send_joint_torque(tau, 5)  # 打开夹爪
+Clock.wait()
+move_to(place_lift, steps=3000, gripper=5)
+

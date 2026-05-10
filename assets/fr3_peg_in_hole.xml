@@ -31,14 +31,14 @@
                 <!-- 自由运动 -->
                  <joint name="object_free_joint" type="free"/>
                  <!-- 质量和惯性 -->
-                 <inertial mass="0.5" pos="0 0 0" fullinertia="0.001 0.001 0.001 0 0 0"/>
+                 <inertial mass="0.01" pos="0 0 0" fullinertia="0.001 0.001 0.001 0 0 0"/>
                  <!-- 几何体 -->
                  <geom 
                     type="box" 
                     size="0.025 0.025 0.05"
                     rgba="0.8 0.2 0.2 1"
 
-                    friction="1.5 0.5 0.3"
+                    friction="3.0 1.0 0.5"
                     condim="3"
                     
                     solref="0.01 1"
@@ -66,8 +66,12 @@
                 conaffinity="1"/>
         </body> -->
         <body name="box2" pos="-0.32 -0.2 0.85">
-            <!-- 斜面：旋转一个薄盒子形成 ramp -->
+
+            <!-- ===================== -->
+            <!-- 斜面 ramp（你原来的） -->
+            <!-- ===================== -->
             <geom type="box"
+                name="ramp"
                 size="0.05 0.05 0.01"
                 pos="0 0 0.03"
                 euler="0 45 0"
@@ -75,7 +79,36 @@
                 contype="1"
                 conaffinity="1"
                 solref="0.002 1"
-                solimp="0.9 0.95 0.001"/>
+                solimp="0.9 0.95 0.001"/> 
+
+
+            <!-- 左侧挡板 -->
+            <geom type="box"
+                pos="-0.03 0 0.04"
+                size="0.005 0.06 0.04"
+                rgba="0.3 0.3 0.3 1"
+                contype="1" conaffinity="1"/>
+            <!-- 右侧挡板 -->
+            <!-- <geom type="box"
+                pos="0.1 0 0.04"
+                size="0.005 0.06 0.04"
+                rgba="0.3 0.3 0.3 1"
+                contype="1" conaffinity="1"/> -->
+
+            <!-- 前挡板 -->
+            <geom type="box"
+                pos="0.03 0.06 0.04"
+                size="0.06 0.005 0.04"
+                rgba="0.3 0.3 0.3 1"
+                contype="1" conaffinity="1"/>
+
+            <!-- 后挡板 -->
+            <geom type="box"
+                pos="0.03 -0.06 0.04"
+                size="0.06 0.005 0.04"
+                rgba="0.3 0.3 0.3 1"
+                contype="1" conaffinity="1"/>
+
         </body>
         
     </worldbody>

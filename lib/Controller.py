@@ -196,7 +196,7 @@ class Admittance_Controller:
             self.Kp_ori * ori_error +
             self.Kd_ori * omega_error
         )
-
+        desired_force[2] = -0.1  # 竖直方向不施加力，完全由环境约束
         # ===== Full wrench =====
         wrench = np.concatenate([desired_force, desired_moment])
 
