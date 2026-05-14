@@ -41,13 +41,8 @@ class Position_Controller:
         # ===== Jacobian =====
         J = self.robot.get_jacobian(q)
 
-        J_spatial = np.block([
-            [R_ee @ J[3:, :]],
-            [R_ee @ J[:3, :]]
-        ])
-
         # ===== 速度 =====
-        dx_full = J_spatial @ dq
+        dx_full = J @ dq
         v = dx_full[:3]
         omega = dx_full[3:]
 
@@ -71,7 +66,7 @@ class Position_Controller:
         wrench = np.concatenate([force, moment])
 
         # ===== torque =====
-        tau = J_spatial.T @ wrench + self.robot.get_gravity(q)
+        tau = J.T @ wrench + self.robot.get_gravity(q)
 
         return tau
 
@@ -151,15 +146,9 @@ class Admittance_Controller:
         # ===== Jacobian =====
         J = self.robot.get_jacobian(q)
 
-        J_spatial = np.block([
-            [R_ee @ J[3:, :]],   # linear
-            [R_ee @ J[:3, :]]    # angular
-        ])
-
-        dx_full = J_spatial @ dq
+        dx_full = J @ dq
         dx = dx_full[:3]
         omega = dx_full[3:]
-
 
         # ===== External force =====
         f_ext = self.robot.get_sensor_force()
@@ -196,12 +185,12 @@ class Admittance_Controller:
             self.Kp_ori * ori_error +
             self.Kd_ori * omega_error
         )
-        desired_force[2] = -0.1  # 竖直方向不施加力，完全由环境约束
+        desired_force[2] = -0.5  # 竖直方向不施加力，完全由重力约束
         # ===== Full wrench =====
         wrench = np.concatenate([desired_force, desired_moment])
 
         # ===== Joint torque =====
-        tau = J_spatial.T @ wrench + self.robot.get_gravity(q)
+        tau = J.T @ wrench + self.robot.get_gravity(q)
 
         return tau
 
@@ -269,12 +258,8 @@ class Impedance_Controller:
         # ===== Jacobian =====
         J = self.robot.get_jacobian(q)
 
-        J_spatial = np.block([
-            [R_ee @ J[3:, :]],   # linear
-            [R_ee @ J[:3, :]]    # angular
-        ])
 
-        dx_full = J_spatial @ dq
+        dx_full = J @ dq
         v = dx_full[:3]
         omega = dx_full[3:]
 
@@ -307,6 +292,6 @@ class Impedance_Controller:
         # =========================
         # 关节力矩
         # =========================
-        tau = J_spatial.T @ wrench + self.robot.get_gravity(q)
+        tau = J.T @ wrench + self.robot.get_gravity(q)
 
         return tau

@@ -7,26 +7,25 @@ from lib.Clock import Clock
 my_robot = FR3Sim(xml_path="./assets/fr3_pick_place.xml")
 controller = Position_Controller(my_robot)
 Clock = Clock(0.001)
-R_des = R.from_euler('xyz', [3.14, 0, 0]).as_matrix()
+R_des = R.from_euler('xyz', [3.14, 0, 3.14]).as_matrix()
 
 # =========================
-# 物体初始位置（自己根据XML改）
+# 物体抓取及放置位置
 # =========================
-obj_pos = np.array([0.45, 0.1, 0.1])
+obj_pos = my_robot.get_mj_pose("object")["position"]
+place_pos = my_robot.get_mj_pose("box1")["position"]
 # =========================
 # 抓取路径
 # =========================
-pre_grasp = obj_pos + np.array([0, 0, 0.15])
-grasp = obj_pos + np.array([0, 0, 0.08])
-lift = obj_pos + np.array([0, 0, 0.2])
+pre_grasp = obj_pos + np.array([0, 0, 0.3])
+grasp = obj_pos + np.array([0, 0, 0.15])
+lift = obj_pos + np.array([0, 0, 0.3])
 # =========================
-# 放置位置
+# 放置路径
 # =========================
-place_pos = np.array([0.45, -0.25, 0.25])
-
-place_pre = place_pos + np.array([0, 0, 0.15])
-place_down = place_pos + np.array([0, 0, 0.08])
-place_lift = place_pos + np.array([0, 0, 0.2])
+place_pre = place_pos + np.array([0, 0, 0.3])
+place_down = place_pos + np.array([0, 0, 0.28])
+place_lift = place_pos + np.array([0, 0, 0.4])
 # =========================
 # 移动
 # =========================

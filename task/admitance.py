@@ -39,16 +39,12 @@ class adm_controller(Admittance_Controller):
         # ===== Jacobian =====
         J = self.robot.get_jacobian(q)
 
-        J_spatial = np.block([
-            [R_ee @ J[3:, :]],   # linear
-            [R_ee @ J[:3, :]]    # angular
-        ])
 
-        dx_full = J_spatial @ dq
+        dx_full = J @ dq
         dx = dx_full[:3]
         omega = dx_full[3:]
 
-        # ===== 外部作用在质心上的力=====
+        # ===== 外部作用在质心上的力，只算线性部分=====
         f_ext = self.robot.data.xfrc_applied[self.ee_body_id][:3]
 
         # ==================================
@@ -89,7 +85,7 @@ class adm_controller(Admittance_Controller):
         wrench = np.concatenate([desired_force, desired_moment])
 
         # ===== Joint torque =====
-        tau = J_spatial.T @ wrench + self.robot.get_gravity(q)
+        tau = J.T @ wrench + self.robot.get_gravity(q)
 
         return tau
 

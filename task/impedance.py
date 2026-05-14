@@ -17,8 +17,8 @@ controller = Impedance_Controller(robot)
 # 设置目标位置（可选）
 # =========================
 controller.set_target(
-    position=np.array([0.45, 0.0, 0.50]),
-    rotation_matrix=R.from_euler('xyz', [0, 3.14, 3.14]).as_matrix()
+    position=np.array([0.5, -0.5, 1.5]),
+    rotation_matrix=R.from_euler('xyz', [0, np.pi,np.pi/2]).as_matrix()
 )
 
 # =========================

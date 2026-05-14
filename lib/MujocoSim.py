@@ -1,11 +1,8 @@
 import time
-from copy import deepcopy
 import mujoco
 import mujoco.viewer
 import numpy as np
 import os
-import pinocchio as pin
-from pinocchio import RobotWrapper
 from scipy.spatial.transform import Rotation as R
 
 
@@ -64,9 +61,70 @@ class FR3Sim:
         self.actuator_tau = np.zeros(7)
         self.tau_ff = np.zeros(7)
         self.dq_des = np.zeros(7)
-        urdf = os.path.join(ASSETS_PATH, "fr3.urdf")
-        meshes_dir = os.path.join(ASSETS_PATH, "meshes")
-        self.pin_model = RobotWrapper.BuildFromURDF(urdf, meshes_dir)
+
+        self.ee_body_name = "hand"
+        self.ee_body_id = mujoco.mj_name2id(
+            self.model,
+            mujoco.mjtObj.mjOBJ_BODY,
+            self.ee_body_name,
+        )
+
+    def reset(self):
+        self.data.qpos[:7] = self.q0
+        self.data.qvel[:7] = np.zeros(7)
+        mujoco.mj_step(self.model, self.data)
+        if self.render and (self.step_counter % self.render_ds_ratio) == 0:
+            self.viewer.sync()
+
+    def get_state(self):
+        return self.data.qpos[:7], self.data.qvel[:7]
+
+    def get_joint_acceleration(self):
+        return self.data.qacc[:7]
+
+    def step(self, finger_pos=None):
+        tau = self.tau_ff
+        self.actuator_tau = tau
+        if finger_pos is not None:
+            tau = np.append(tau, finger_pos)
+            self.data.ctrl[:8] = tau.squeeze()
+        else:
+            self.data.ctrl[:7] = tau.squeeze()
+        self.step_counter += 1
+        mujoco.mj_step(self.model, self.data)
+        if self.render and (self.step_counter % self.render_ds_ratio) == 0:
+            self.viewer.sync()
+
+    def send_joint_torque(self, torques, finger_pos=None):
+        self.tau_ff = torques
+        self.latest_command_stamp = time.time()
+        self.step(finger_pos)
+
+    def get_gravity(self, q):
+
+        q_backup = self.data.qpos[:7].copy()
+        v_backup = self.data.qvel[:7].copy()
+
+        self.data.qpos[:7] = q
+        self.data.qvel[:7] = 0
+
+        mujoco.mj_forward(self.model, self.data)
+
+        mujoco.mj_rne(
+            self.model,
+            self.data,
+            0,
+            self.data.qfrc_bias
+        )
+
+        g = self.data.qfrc_bias[:7].copy()
+
+        self.data.qpos[:7] = q_backup
+        self.data.qvel[:7] = v_backup
+
+        mujoco.mj_forward(self.model, self.data)
+
+        return g
 
     def forward_kinematics(self, q, update=True):
         """
@@ -82,115 +140,56 @@ class FR3Sim:
         )
         return np.array(T_S_F)
 
-    def joint_state_callback(self, msg):
-        """
-        Callback to handle incoming joint states.
-        """
-        positions = list(msg.position[:7])
-        velocities = list(msg.velocity[:7])
-        efforts = list(msg.effort[:7])
-        names = list(msg.name[:7])  # Ensure we only take the first 7 names
-        # Swap the 2nd and 3rd elements (index 1 and 2) of the arrays
-        positions[1], positions[2] = positions[2], positions[1]
-        velocities[1], velocities[2] = velocities[2], velocities[1]
-        efforts[1], efforts[2] = efforts[2], efforts[1]
-        names[1], names[2] = names[2], names[1]
-        self.latest_joint_states = {
-            "names": names,
-            "positions": positions,
-            "velocities": velocities,
-            "efforts": efforts,
-        }
-
-    def get_latest_joint_states(self):
-        """
-        Returns the most recent joint states received from the /joint_states topic.
-        Returns:
-            dict: {'names', 'positions', 'velocities', 'efforts'}
-        """
-        return self.latest_joint_states
-
-    def reset(self):
-        self.data.qpos[:7] = self.q0
-        self.data.qvel[:7] = np.zeros(7)
-        mujoco.mj_step(self.model, self.data)
-        if self.render and (self.step_counter % self.render_ds_ratio) == 0:
-            self.viewer.sync()
-
-    def get_state(self):
-        return self.data.qpos[:7], self.data.qvel[:7]
-
-    def get_joint_acceleration(self):
-        return self.data.qacc[:7]
-
-    def send_joint_torque(self, torques, finger_pos=None):
-        self.tau_ff = torques
-        self.latest_command_stamp = time.time()
-        self.step(finger_pos)
-
-    def step(self, finger_pos=None):
-        tau = self.tau_ff
-        self.actuator_tau = tau
-        if finger_pos is not None:
-            tau = np.append(tau, finger_pos)
-            self.data.ctrl[:8] = tau.squeeze()
-        else:
-            self.data.ctrl[:7] = tau.squeeze()
-        self.step_counter += 1
-        mujoco.mj_step(self.model, self.data)
-        if self.render and (self.step_counter % self.render_ds_ratio) == 0:
-            self.viewer.sync()
-
-    def get_gravity(self, q):
-        g = self.pin_model.gravity(np.append(q, [0.0, 0.0]))
-        return g[:7]
-
-    def get_dynamics(self, q, v):
-        """
-        Compute the joint-space inertia matrix M(q) and the nonlinear effects h(q, v) = C(q, v)*v + g(q).
-        Args:
-            q (np.ndarray): Joint positions (size: [model.nq] or [only joint DOFs])
-            v (np.ndarray): Joint velocities (size: [model.nv] or [only joint DOFs])
-        Returns:
-            M (np.ndarray): Mass matrix (nv x nv)
-            h (np.ndarray): Nonlinear effects (nv,)
-        """
-        q = np.append(q, [0.0, 0.0])  # Append zeros for the end-effector
-        v = np.append(v, [0.0, 0.0])  # Append zeros for the end-effector
-        M = self.pin_model.mass(q)
-        h = self.pin_model.nle(q, v)
-        return M, h
-
-    def compute_tau(self, q, v, ddq_des):
-        """
-        Compute the total torque command using inverse dynamics:
-        tau = M(q) * ddq_des + h(q, v)
-        Args:
-            q (np.ndarray): Joint positions
-            v (np.ndarray): Joint velocities
-            ddq_des (np.ndarray): Desired joint accelerations
-        Returns:
-            tau (np.ndarray): Joint torques
-        """
-        ddq_des = np.append(ddq_des, [0.0, 0.0])  # Append zeros for the end-effector
-        M, h = self.get_dynamics(q, v)
-        tau = M @ ddq_des + h
-        return tau[:7]
 
     def get_jacobian(self, q):
-        J_temp = self.pin_model.computeFrameJacobian(
-            np.append(q, [0.0, 0.0]), END_EFF_FRAME_ID
+
+        q_backup = self.data.qpos[:7].copy()
+
+        self.data.qpos[:7] = q
+
+        mujoco.mj_forward(self.model, self.data)
+
+        jacp = np.zeros((3, self.model.nv))
+        jacr = np.zeros((3, self.model.nv))
+
+        mujoco.mj_jacBody(
+            self.model,
+            self.data,
+            jacp,
+            jacr,
+            self.ee_body_id,
         )
-        J = np.zeros([6, 7])
-        J[3:6, :] = J_temp[0:3, :7]
-        J[0:3, :] = J_temp[3:6, :7]
-        return J[:, :7]
+
+        J = np.zeros((6, 7))
+
+        J[0:3, :] = jacp[:, :7]
+        J[3:6, :] = jacr[:, :7]
+
+        self.data.qpos[:7] = q_backup
+        mujoco.mj_forward(self.model, self.data)
+
+        return J
 
     def get_pose(self, q):
-        T_S_F = self.pin_model.framePlacement(
-            np.append(q, [0.0, 0.0]), END_EFF_FRAME_ID  #FR3在Pinocchio模型中有9个DOF，末端执行器的位姿需要在原来的7维关节空间基础上补齐2维
-        )
-        return T_S_F.homogeneous  #T为pinocchio.SE3类型，homogeneous属性返回4x4的齐次变换矩阵
+
+        q_backup = self.data.qpos[:7].copy()
+
+        self.data.qpos[:7] = q
+
+        mujoco.mj_forward(self.model, self.data)
+
+        pos = self.data.xpos[self.ee_body_id].copy()
+
+        rot = self.data.xmat[self.ee_body_id].reshape(3, 3).copy()
+
+        T = np.eye(4)
+        T[:3, :3] = rot
+        T[:3, 3] = pos
+
+        self.data.qpos[:7] = q_backup
+        mujoco.mj_forward(self.model, self.data)
+
+        return T
 
     def get_ee_force_torque(self):
         force_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SENSOR, "ee_force")
@@ -211,6 +210,45 @@ class FR3Sim:
         return f
     
     
+
+    def get_mj_pose(self, body_name):
+        """
+        Get pose of a body in MuJoCo world frame.
+        Args:
+            body_name (str): body name in XML
+        Returns:
+            dict containing:
+                position      : (3,)
+                quaternion    : (4,) [x,y,z,w]
+                rotation      : (3,3)
+                transform     : (4,4)
+        """
+        # body id
+        body_id = mujoco.mj_name2id(
+            self.model,
+            mujoco.mjtObj.mjOBJ_BODY,
+            body_name,
+        )
+        if body_id == -1:
+            raise ValueError(f"Body '{body_name}' not found")
+        # position
+        pos = self.data.xpos[body_id].copy()
+        # rotation matrix
+        rot = self.data.xmat[body_id].reshape(3, 3).copy()
+        # quaternion
+        quat = R.from_matrix(rot).as_quat()
+        # homogeneous transform
+        T = np.eye(4)
+        T[:3, :3] = rot
+        T[:3, 3] = pos
+        return {
+            "position": pos,
+            "quaternion": quat,
+            "rotation": rot,
+            "transform": T,
+        }
+    
+
     def close(self):
         if self.render:
             self.viewer.close()
