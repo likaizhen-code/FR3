@@ -1,8 +1,8 @@
 # Quick Start
  1. conda create -n fr3 python=3.10 -y
  2. conda activate fr3
- 3. pip install -r requirements.txt(注：pinocchio库用conda下载)
- 4. 添加环境变量：setx PYTHONPATH "..\FR3;$env:PYTHONPATH"
+ 3. pip install -r requirements.txt
+ 4. pip install -e .
 
 # Structure
 -FR3
