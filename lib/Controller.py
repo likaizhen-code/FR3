@@ -202,8 +202,8 @@ class Impedance_Controller:
         # =========================
         # 位置阻抗参数
         # =========================
-        self.Kp_pos = np.array([150, 150, 150])
-        self.Kd_pos = np.array([300, 300, 300])
+        self.Kp_pos = np.array([1000, 1000, 1000])
+        self.Kd_pos = np.array([200, 200, 200])
 
         # =========================
         # 姿态阻抗参数
