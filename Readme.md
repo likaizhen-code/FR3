@@ -1,7 +1,7 @@
 # FR3 MuJoCo Simulation Infrastructure
 
 基于 MuJoCo 的 Franka Research 3 (FR3) 机械臂仿真与控制基础设施。
-
+欢迎大家共同修改和维护。
 ---
 
 ## 🚀 Quick Start
