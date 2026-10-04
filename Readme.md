@@ -1,7 +1,10 @@
 # FR3 MuJoCo Simulation Infrastructure
 
 
-Uploading 4f8ce7c9f584ff55f65c5821006ea0a5.mp4…
+
+
+https://github.com/user-attachments/assets/c25cdeeb-2fea-41cf-ace3-135884c60175
+
 
 
 基于 MuJoCo 的 Franka Research 3 (FR3) 机械臂仿真与控制基础设施。
