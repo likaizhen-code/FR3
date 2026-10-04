@@ -2,9 +2,7 @@
 
 
 
-
-https://github.com/user-attachments/assets/c25cdeeb-2fea-41cf-ace3-135884c60175
-
+https://github.com/user-attachments/assets/8b6d50ee-3d64-4ca1-b51a-fb3dbd508ec3
 
 
 基于 MuJoCo 的 Franka Research 3 (FR3) 机械臂仿真与控制基础设施。
